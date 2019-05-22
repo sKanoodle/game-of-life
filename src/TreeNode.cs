@@ -6,24 +6,27 @@ using System.Threading.Tasks;
 
 namespace GameOfLife
 {
-    class TreeNode
+    public class TreeNode
     {
         private TreeNode TopLeft;
         private TreeNode TopRight;
         private TreeNode BottomLeft;
         private TreeNode BottomRight;
 
+        /// <summary>
+        /// Level 0 is a node without subnodes but containing leaves, every other level has subnodes
+        /// </summary>
         public int Level { get; }
         public int Width => (int)Math.Pow(2, Level + 1);
 
         private int Leafs;
 
-        public bool IsLeafPopulated(LeafPosition position) => (Leafs & (int)position) > 0;
-        public void SetLeafAlive(LeafPosition position) => Leafs |= (int)position;
-        public void SetLeafDead(LeafPosition position) => Leafs &= ~(int)position;
-        public void ToggleLeaf(LeafPosition position) => Leafs ^= (int)position;
+        private bool IsLeafPopulated(LeafPosition position) => (Leafs & (int)position) > 0;
+        private void SetLeafAlive(LeafPosition position) => Leafs |= (int)position;
+        private void SetLeafDead(LeafPosition position) => Leafs &= ~(int)position;
+        private void ToggleLeaf(LeafPosition position) => Leafs ^= (int)position;
 
-        public enum LeafPosition { TopLeft = 1, TopRight = 2, BottomLeft = 4, BottomRight = 8 };
+        private enum LeafPosition { TopLeft = 1, TopRight = 2, BottomLeft = 4, BottomRight = 8 };
 
         private TreeNode(int level)
         {
@@ -37,19 +40,29 @@ namespace GameOfLife
             }
         }
 
-        private TreeNode(int level, TreeNode topLeft, TreeNode topRight, TreeNode bottomLeft, TreeNode bottomRight)
+        private TreeNode(TreeNode topLeft, TreeNode topRight, TreeNode bottomLeft, TreeNode bottomRight)
         {
-            Level = level;
+            Level = topLeft.Level + 1;
             TopLeft = topLeft;
             TopRight = topRight;
             BottomLeft = bottomLeft;
             BottomRight = bottomRight;
         }
 
-        private TreeNode GetNextGeneration()
+        private TreeNode(bool topLeft, bool topRight, bool bottomLeft, bool bottomRight)
         {
-            void CalcForCell(int aliveNeighbourCount, bool cellAlive, LeafPosition position, Action<LeafPosition> setAlive, Action<LeafPosition> setDead)
+            Level = 0;
+            if (topLeft) SetLeafAlive(LeafPosition.TopLeft);
+            if (topRight) SetLeafAlive(LeafPosition.TopRight);
+            if (bottomLeft) SetLeafAlive(LeafPosition.BottomLeft);
+            if (bottomRight) SetLeafAlive(LeafPosition.BottomRight);
+        }
+
+        public TreeNode GetNextGeneration()
+        {
+            void CalcForCell(IEnumerable<bool> neighbours, bool cellAlive, LeafPosition position, Action<LeafPosition> setAlive, Action<LeafPosition> setDead)
             {
+                int aliveNeighbourCount = neighbours.Count(b => b);
                 if (cellAlive)
                 {
                     if (aliveNeighbourCount > 1 && aliveNeighbourCount < 4) // alive cells with 2 or 3 neighbours live
@@ -60,92 +73,79 @@ namespace GameOfLife
                     setAlive(position);
             }
 
-            if (Level == 2)
+            IEnumerable<bool> topLeftNeighbours() => new[] {
+                TopLeft.IsLeafPopulated(LeafPosition.TopLeft), TopLeft.IsLeafPopulated(LeafPosition.TopRight), TopRight.IsLeafPopulated(LeafPosition.TopLeft),
+                TopLeft.IsLeafPopulated(LeafPosition.BottomLeft), TopRight.IsLeafPopulated(LeafPosition.BottomLeft),
+                BottomLeft.IsLeafPopulated(LeafPosition.TopLeft), BottomLeft.IsLeafPopulated(LeafPosition.TopRight), BottomRight.IsLeafPopulated(LeafPosition.TopLeft),
+            };
+            IEnumerable<bool> topRightNeighbours() => new[] {
+                TopLeft.IsLeafPopulated(LeafPosition.TopRight), TopRight.IsLeafPopulated(LeafPosition.TopLeft), TopRight.IsLeafPopulated(LeafPosition.TopRight),
+                TopLeft.IsLeafPopulated(LeafPosition.BottomRight), TopRight.IsLeafPopulated(LeafPosition.BottomRight),
+                BottomLeft.IsLeafPopulated(LeafPosition.TopRight), BottomRight.IsLeafPopulated(LeafPosition.TopLeft), BottomRight.IsLeafPopulated(LeafPosition.TopRight),
+            };
+            IEnumerable<bool> bottomLeftNeighbours() => new[] {
+                TopLeft.IsLeafPopulated(LeafPosition.BottomLeft), TopLeft.IsLeafPopulated(LeafPosition.BottomRight), TopRight.IsLeafPopulated(LeafPosition.BottomLeft),
+                BottomLeft.IsLeafPopulated(LeafPosition.TopLeft), BottomRight.IsLeafPopulated(LeafPosition.TopLeft),
+                BottomRight.IsLeafPopulated(LeafPosition.BottomLeft), BottomRight.IsLeafPopulated(LeafPosition.BottomRight), BottomLeft.IsLeafPopulated(LeafPosition.BottomLeft),
+            };
+            IEnumerable<bool> bottomRightNeighbours() => new[] {
+                TopLeft.IsLeafPopulated(LeafPosition.BottomRight), TopRight.IsLeafPopulated(LeafPosition.BottomLeft), TopRight.IsLeafPopulated(LeafPosition.BottomRight),
+                BottomLeft.IsLeafPopulated(LeafPosition.TopRight), BottomRight.IsLeafPopulated(LeafPosition.TopRight),
+                BottomLeft.IsLeafPopulated(LeafPosition.BottomRight), BottomRight.IsLeafPopulated(LeafPosition.BottomLeft), BottomRight.IsLeafPopulated(LeafPosition.BottomRight),
+            };
+
+            if (Level == 1)
             {
                 TreeNode result = new TreeNode(0);
-
-                // calc top left result
-                {
-                    int neighbours = new[] {
-                        TopLeft.IsLeafPopulated(LeafPosition.TopLeft),
-                        TopLeft.IsLeafPopulated(LeafPosition.TopRight),
-                        TopRight.IsLeafPopulated(LeafPosition.TopLeft),
-                        TopLeft.IsLeafPopulated(LeafPosition.BottomLeft),
-                        TopRight.IsLeafPopulated(LeafPosition.BottomLeft),
-                        BottomLeft.IsLeafPopulated(LeafPosition.TopLeft),
-                        BottomLeft.IsLeafPopulated(LeafPosition.TopRight),
-                        BottomRight.IsLeafPopulated(LeafPosition.TopLeft),
-                    }.Count(b => b);
-                    CalcForCell(neighbours, TopLeft.IsLeafPopulated(LeafPosition.BottomRight), LeafPosition.TopLeft, result.SetLeafAlive, result.SetLeafDead);
-                }
-                // calc top right result
-                {
-                    int neighbours = new[] {
-                        TopLeft.IsLeafPopulated(LeafPosition.TopRight),
-                        TopRight.IsLeafPopulated(LeafPosition.TopLeft),
-                        TopRight.IsLeafPopulated(LeafPosition.TopRight),
-                        TopLeft.IsLeafPopulated(LeafPosition.BottomRight),
-                        TopRight.IsLeafPopulated(LeafPosition.BottomRight),
-                        BottomLeft.IsLeafPopulated(LeafPosition.TopRight),
-                        BottomRight.IsLeafPopulated(LeafPosition.TopLeft),
-                        BottomRight.IsLeafPopulated(LeafPosition.TopRight),
-                    }.Count(b => b);
-                    CalcForCell(neighbours, TopRight.IsLeafPopulated(LeafPosition.BottomLeft), LeafPosition.TopRight, result.SetLeafAlive, result.SetLeafDead);
-                }
-                // calc bottom left result
-                {
-                    int neighbours = new[] {
-                        TopLeft.IsLeafPopulated(LeafPosition.BottomLeft),
-                        TopLeft.IsLeafPopulated(LeafPosition.BottomRight),
-                        TopRight.IsLeafPopulated(LeafPosition.BottomLeft),
-                        BottomLeft.IsLeafPopulated(LeafPosition.TopLeft),
-                        BottomRight.IsLeafPopulated(LeafPosition.TopLeft),
-                        BottomRight.IsLeafPopulated(LeafPosition.BottomLeft),
-                        BottomRight.IsLeafPopulated(LeafPosition.BottomRight),
-                        BottomLeft.IsLeafPopulated(LeafPosition.BottomLeft),
-                    }.Count(b => b);
-                    CalcForCell(neighbours, BottomLeft.IsLeafPopulated(LeafPosition.TopRight), LeafPosition.BottomLeft, result.SetLeafAlive, result.SetLeafDead);
-                }
-                // calc bottom right result
-                {
-                    int neighbours = new[] {
-                        TopLeft.IsLeafPopulated(LeafPosition.BottomRight),
-                        TopRight.IsLeafPopulated(LeafPosition.BottomLeft),
-                        TopRight.IsLeafPopulated(LeafPosition.BottomRight),
-                        BottomLeft.IsLeafPopulated(LeafPosition.TopRight),
-                        BottomRight.IsLeafPopulated(LeafPosition.TopRight),
-                        BottomLeft.IsLeafPopulated(LeafPosition.BottomRight),
-                        BottomRight.IsLeafPopulated(LeafPosition.BottomLeft),
-                        BottomRight.IsLeafPopulated(LeafPosition.BottomRight),
-                    }.Count(b => b);
-                    CalcForCell(neighbours, BottomRight.IsLeafPopulated(LeafPosition.TopLeft), LeafPosition.BottomRight, result.SetLeafAlive, result.SetLeafDead);
-                }
+                CalcForCell(topLeftNeighbours(), TopLeft.IsLeafPopulated(LeafPosition.BottomRight), LeafPosition.TopLeft, result.SetLeafAlive, result.SetLeafDead);
+                CalcForCell(topRightNeighbours(), TopRight.IsLeafPopulated(LeafPosition.BottomLeft), LeafPosition.TopRight, result.SetLeafAlive, result.SetLeafDead);
+                CalcForCell(bottomLeftNeighbours(), BottomLeft.IsLeafPopulated(LeafPosition.TopRight), LeafPosition.BottomLeft, result.SetLeafAlive, result.SetLeafDead);
+                CalcForCell(bottomRightNeighbours(), BottomRight.IsLeafPopulated(LeafPosition.TopLeft), LeafPosition.BottomRight, result.SetLeafAlive, result.SetLeafDead);
                 return result;
             }
 
-            TreeNode n00 = TopLeft.CenteredSubnode();
-            TreeNode n02 = TopRight.CenteredSubnode();
-            TreeNode n20 = BottomLeft.CenteredSubnode();
-            TreeNode n22 = BottomLeft.CenteredSubnode();
-            TreeNode n01 = CenteredVertical(TopLeft, TopRight);
-            TreeNode n21 = CenteredVertical(BottomLeft, BottomRight);
-            TreeNode n10 = CenteredHorizontal(TopLeft, BottomLeft);
-            TreeNode n12 = CenteredHorizontal(TopRight, BottomRight);
-            TreeNode n11 = CenteredSubSubnode();
+            TreeNode topLeft = TopLeft.CenteredSubnode();
+            TreeNode top = CenteredHorizontal(TopLeft, TopRight);
+            TreeNode topRight = TopRight.CenteredSubnode();
+            TreeNode left = CenteredVertical(TopLeft, BottomLeft);
+            TreeNode center = CenteredSubSubnode();
+            TreeNode right = CenteredVertical(TopRight, BottomRight);
+            TreeNode bottomLeft = BottomLeft.CenteredSubnode();
+            TreeNode bottom = CenteredHorizontal(BottomLeft, BottomRight);
+            TreeNode bottomRight = BottomRight.CenteredSubnode();
 
             return new TreeNode(
-                Level - 1,
-                new TreeNode(Level - 2, n00, n01, n10, n11).GetNextGeneration(),
-                new TreeNode(Level - 2, n01, n02, n11, n12).GetNextGeneration(),
-                new TreeNode(Level - 2, n10, n11, n20, n21).GetNextGeneration(),
-                new TreeNode(Level - 2, n11, n12, n21, n22).GetNextGeneration()
+                new TreeNode(topLeft, top, left, center).GetNextGeneration(),
+                new TreeNode(top, topRight, center, right).GetNextGeneration(),
+                new TreeNode(left, center, bottomLeft, bottom).GetNextGeneration(),
+                new TreeNode(center, right, bottom, bottomRight).GetNextGeneration()
             );
         }
 
-        private TreeNode CenteredSubnode() => new TreeNode(Level - 1, TopLeft.BottomRight, TopRight.BottomLeft, BottomLeft.TopRight, BottomRight.TopLeft);
-        private TreeNode CenteredHorizontal(TreeNode top, TreeNode bottom) => new TreeNode(Level - 1, top.BottomLeft.BottomRight, top.BottomRight.BottomLeft, bottom.TopLeft.TopRight, bottom.TopRight.TopLeft);
-        private TreeNode CenteredVertical(TreeNode left, TreeNode right) => new TreeNode(Level - 1, left.TopRight.BottomRight, right.TopLeft.BottomLeft, left.BottomRight.TopRight, right.BottomLeft.TopLeft);
-        private TreeNode CenteredSubSubnode() => new TreeNode(Level - 1, TopLeft.BottomRight.BottomRight, TopRight.BottomLeft.BottomLeft, BottomLeft.TopRight.TopRight, BottomRight.TopLeft.TopLeft);
+        private TreeNode CenteredSubnode()
+        {
+            if (Level > 1)
+                return new TreeNode(TopLeft.BottomRight, TopRight.BottomLeft, BottomLeft.TopRight, BottomRight.TopLeft);
+            return new TreeNode(TopLeft.IsLeafPopulated(LeafPosition.BottomRight), TopRight.IsLeafPopulated(LeafPosition.BottomLeft), BottomLeft.IsLeafPopulated(LeafPosition.TopRight), BottomRight.IsLeafPopulated(LeafPosition.TopLeft));
+        }
+        private TreeNode CenteredVertical(TreeNode top, TreeNode bottom)
+        {
+            if (Level > 2)
+                return new TreeNode(top.BottomLeft.BottomRight, top.BottomRight.BottomLeft, bottom.TopLeft.TopRight, bottom.TopRight.TopLeft);
+            return new TreeNode(top.BottomLeft.IsLeafPopulated(LeafPosition.BottomRight), top.BottomRight.IsLeafPopulated(LeafPosition.BottomLeft), bottom.TopLeft.IsLeafPopulated(LeafPosition.TopRight), bottom.TopRight.IsLeafPopulated(LeafPosition.TopLeft));
+        }
+        private TreeNode CenteredHorizontal(TreeNode left, TreeNode right)
+        {
+            if (Level > 2)
+                return new TreeNode(left.TopRight.BottomRight, right.TopLeft.BottomLeft, left.BottomRight.TopRight, right.BottomLeft.TopLeft);
+            return new TreeNode(left.TopRight.IsLeafPopulated(LeafPosition.BottomRight), right.TopLeft.IsLeafPopulated(LeafPosition.BottomLeft), left.BottomRight.IsLeafPopulated(LeafPosition.TopRight), right.BottomLeft.IsLeafPopulated(LeafPosition.TopLeft));
+        }
+        private TreeNode CenteredSubSubnode()
+        {
+            if (Level > 2)
+                return new TreeNode(TopLeft.BottomRight.BottomRight, TopRight.BottomLeft.BottomLeft, BottomLeft.TopRight.TopRight, BottomRight.TopLeft.TopLeft);
+            return new TreeNode(TopLeft.BottomRight.IsLeafPopulated(LeafPosition.BottomRight), TopRight.BottomLeft.IsLeafPopulated(LeafPosition.BottomLeft), BottomLeft.TopRight.IsLeafPopulated(LeafPosition.TopRight), BottomRight.TopLeft.IsLeafPopulated(LeafPosition.TopLeft));
+        }
 
         private void BirthCellAt(int x, int y)
         {
@@ -177,18 +177,25 @@ namespace GameOfLife
 
         public static TreeNode GenerateNextGeneration(TreeNode node)
         {
+            // grows too big too fast
+            //TreeNode wrapper = new TreeNode(
+            //    new TreeNode(node.Level + 1),
+            //    new TreeNode(node.Level + 1),
+            //    new TreeNode(node.Level + 1),
+            //    new TreeNode(
+            //        node,
+            //        new TreeNode(node.Level),
+            //        new TreeNode(node.Level),
+            //        new TreeNode(node.Level)
+            //    )
+            //);
+
+            int level = node.Level - 1;
             TreeNode wrapper = new TreeNode(
-                node.Level + 2,
-                new TreeNode(node.Level + 1),
-                new TreeNode(node.Level + 1),
-                new TreeNode(node.Level + 1),
-                new TreeNode(
-                    node.Level + 1,
-                    node,
-                    new TreeNode(node.Level),
-                    new TreeNode(node.Level),
-                    new TreeNode(node.Level)
-                )
+                new TreeNode(new TreeNode(level), new TreeNode(level), new TreeNode(level), node.TopLeft),
+                new TreeNode(new TreeNode(level), new TreeNode(level), node.TopRight, new TreeNode(level)),
+                new TreeNode(new TreeNode(level), node.BottomLeft, new TreeNode(level), new TreeNode(level)),
+                new TreeNode(node.BottomRight, new TreeNode(level), new TreeNode(level), new TreeNode(level))
             );
 
             return wrapper.GetNextGeneration();
