@@ -1,8 +1,7 @@
 ﻿<Window x:Class="GameOfLifeCSharp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SharpGL WPF Application" Height="1043" Width="1104" 
-        xmlns:sharpGL="clr-namespace:SharpGL.WPF;assembly=SharpGL.WPF"
+        Title="Game of Life" Height="1043" Width="1104"
         RenderOptions.BitmapScalingMode="NearestNeighbor">
     <Grid Height="1000">
 
