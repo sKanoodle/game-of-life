@@ -65,6 +65,9 @@ namespace GameOfLifeCSharp
             rect.Fill = new DrawingBrush(image);
         }
 
+        /// <summary>
+        /// basic game of life implementation that simply apples the rules to generate the next generation to the backbuffer and swaps it with the frontbuffer
+        /// </summary>
         private void GetNextGeneration()
         {
             int neighbours;
@@ -92,6 +95,10 @@ namespace GameOfLifeCSharp
                 neighbourFrontBuffer[i] = neighbourBackBuffer[i];
         }
 
+        /// <summary>
+        /// Optimized game of life implementation that caches the sums of neighbours for every cell and updates this information when cells are updated.
+        /// Works better than the simple implementation when there are not many changes in a large field.
+        /// </summary>
         private void GetNextGenerationFast()
         {
             backBuffer = new byte[height * width];
