@@ -1,0 +1,17 @@
+﻿<Window x:Class="GameOfLifeCSharp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SharpGL WPF Application" Height="1043" Width="1104" 
+        xmlns:sharpGL="clr-namespace:SharpGL.WPF;assembly=SharpGL.WPF"
+        RenderOptions.BitmapScalingMode="NearestNeighbor">
+    <Grid Height="1000">
+
+        <Button Content="Start" Height="23" HorizontalAlignment="Left" Margin="1013,12,0,0" Name="btnStart" VerticalAlignment="Top" Width="69" Click="btnStart_Click" />
+        <Button Content="Save" Height="23" HorizontalAlignment="Left" Margin="1013,41,0,0" Name="btnSv" VerticalAlignment="Top" Width="69" Click="btnSv_Click" />
+        <Button Content="Random" Height="23" HorizontalAlignment="Left" Margin="1013,70,0,0" Name="btnRdm" VerticalAlignment="Top" Width="69" Click="btnRdm_Click" />
+        <Rectangle Height="1000" HorizontalAlignment="Left" Name="rect" Stroke="Black" VerticalAlignment="Top" Width="1000" />
+        <CheckBox Content="Fast Calc" Height="16" HorizontalAlignment="Left" Margin="1013,175,0,0" Name="cbFast" VerticalAlignment="Top" Checked="cbFast_Checked"/>
+        <Button Content="Forward" Height="23" HorizontalAlignment="Left" Margin="1013,99,0,0" Name="btnFwd" VerticalAlignment="Top" Width="69" Click="btnFwd_Click" />
+        <Label Content="0" Height="28" HorizontalAlignment="Left" Margin="1013,197,0,0" Name="lblCount" VerticalAlignment="Top" Width="69" />
+    </Grid>
+</Window>
